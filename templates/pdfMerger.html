@@ -1,0 +1,34 @@
+{% extends 'layout.html' %}
+{% block body %}
+
+<form action="/pdfMerger" method='post' style="padding:20px; background-color: rgb(221, 221, 220); width:300px;">
+    <div class="form-group">
+        <label>Select the PDF Files</label>
+        <input type="file" class="form-control-file" name="filename" accept="application/pdf" multiple>
+    </div>
+    <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+
+<br/><br/>
+
+{% if msg!="" %}
+<span style="color:rgb(228, 40, 40); text-decoration:none; font-weight:bold;">{{msg}}</span>
+{% endif %}
+
+{% if pdfFile!="" %}
+<span><a href="{{pdfFile}}" style="color:rgb(6, 163, 32); text-decoration:none; font-weight:bold;">Download Merged File</a></span>
+{% endif %}
+
+<script>
+    $(function(){
+       $("input[type = 'submit']").click(function(){
+          var $fileUpload = $("input[type='file']");
+          if (parseInt($fileUpload.get(0).files.length) > 3){
+             alert("You are only allowed to upload a maximum of 3 files");
+          }
+       });
+    });
+ </script>
+
+
+{% endblock %}

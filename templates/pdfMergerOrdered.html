@@ -1,0 +1,24 @@
+{% extends 'layout.html' %}
+{% block body %}
+
+<!-- Form for Merging Specific Number of Files and in Specific Order -->
+
+<form action="/pdfMergerOrdered" method='post' style="padding:20px; background-color: rgb(221, 221, 220); width:300px;">
+    Select PDF1: <input type="file" name="filename1" accept="application/pdf"><br/><br/>
+    Select PDF2: <input type="file" name="filename2" accept="application/pdf"><br/><br/>
+    Select PDF3: <input type="file" name="filename3" accept="application/pdf"><br/><br/>
+    Select PDF4: <input type="file" name="filename4" accept="application/pdf"><br/><br/>
+    <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+
+<br/><br/>
+
+{% if msg!="" %}
+<span style="color:rgb(228, 40, 40); text-decoration:none; font-weight:bold;">{{msg}}</span>
+{% endif %}
+
+{% if pdfFile!="" %}
+<span><a href="{{pdfFile}}" style="color:rgb(6, 163, 32); text-decoration:none; font-weight:bold;">Download Merged File</a></span>
+{% endif %}
+
+{% endblock %}
