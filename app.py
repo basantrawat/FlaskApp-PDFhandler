@@ -1,5 +1,7 @@
 from flask import Flask, render_template, request
 import PyPDF2
+import os
+from pathlib import Path
 
 
 app = Flask(__name__)
@@ -81,19 +83,21 @@ def pdfToText():
     else:
         return render_template('pdfToText.html')
         
+
+
 @app.route('/splitPdf', methods=['GET', 'POST'])
 def splitPdf():    
     if(request.method=='POST'):
         pdffile = request.form.get('filename')
-
-        f = open(pdffile, "rb")
+        f = open(f'pdfFiles/{pdffile}', "rb")
         inputpdf = PyPDF2.PdfFileReader(f)
+
         for i in range(inputpdf.numPages):
             output = PyPDF2.PdfFileWriter()
             output.addPage(inputpdf.getPage(i))
             name = pdffile[:-4]+"-Page "+str(i)+".pdf"
-            outputStream = open(name, "wb")
-            output.write(outputStream)
+            outputFiles = open('splitedFiles/'+name, "wb")
+            output.write(outputFiles)
             
         return render_template('splitPdf.html', msg="Successfully Splited the PDF")
 
