@@ -81,4 +81,32 @@ def pdfToText():
     else:
         return render_template('pdfToText.html')
         
+@app.route('/splitPdf', methods=['GET', 'POST'])
+def splitPdf():    
+    if(request.method=='POST'):
+        pdffile = request.form.get('filename')
+
+        f = open(pdffile, "rb")
+        inputpdf = PyPDF2.PdfFileReader(f)
+        for i in range(inputpdf.numPages):
+            output = PyPDF2.PdfFileWriter()
+            output.addPage(inputpdf.getPage(i))
+            name = pdffile[:-4]+"-Page "+str(i)+".pdf"
+            outputStream = open(name, "wb")
+            output.write(outputStream)
+            
+        return render_template('splitPdf.html', msg="Successfully Splited the PDF")
+
+    else:
+        return render_template('splitPdf.html', msg="")
+
+    # # Listing all the file in directory
+    # files = [f for f in os.listdir(".") if os.path.isfile(f)]
+
+    # #Selecting only PDF files from above list
+    # files = list(filter(lambda f: f.lower().endswith((".pdf")), files))
+    # # print(files)
+
+
+
 app.run(debug=True)
