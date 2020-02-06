@@ -2,84 +2,97 @@ from flask import Flask, render_template, request
 import PyPDF2
 import os
 from pathlib import Path
-
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
+
+app.config['UPLOAD_FOLDER'] = "F:\\PROGRAMMING\\Python\\PdfHandling\\uploadFolder"
+
 
 @app.route('/', methods=['GET', 'POST'])
 @app.route('/pdfMerger', methods=['GET', 'POST'])
 def pdfMerger():   
-    pdfs = ['']
+    # files_name = ['']
     if(request.method=='POST'):
-        pdfs = request.form.getlist('filename')
-        if pdfs==['']:
-            file_path=""
-            return render_template('pdfMerger.html', msg="Choose Some Files First", pdfFile=file_path)
-        else:
-            msg=""
-            pdfMerger = PyPDF2.PdfFileMerger()      
-            for pdf in pdfs: 
-                pdfMerger.append('pdfFiles/'+pdf) 
-                pdfMerger.write('mergedPDF/mergedPDFOutput.pdf')
-            file_path = 'mergedPDF/mergedPDFOutput.pdf'
-            return render_template('pdfMerger.html', pdfFile=file_path, msg=msg)
+        files_name = request.files.getlist('filename[]')
+
+        '''UPLOADING THE FILE TO A SPECIFIC LOCATION'''
+        for file_name in files_name:
+            file_name.save(os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(file_name.filename)))
+
+        '''MERGING THE UPLOADED FILES'''
+        pdfMerger = PyPDF2.PdfFileMerger()      
+        for file_name in files_name: 
+            pdfMerger.append('uploadFolder/' + secure_filename(file_name.filename)) 
+    
+        name = secure_filename(files_name[0].filename)[:-4]+"-MergedFile"+".pdf"
+        pdfMerger.write('mergedPDF/%s' % name)
+        
+        '''RETURNING THE PAGE WITH URL LINK OF MERGED FILE'''
+        file_path = 'mergedPDF/' + name
+        return render_template('pdfMerger.html', msg="Merged Successfully", file_path=file_path) 
     
     else:
-        return render_template('pdfMerger.html', pdfFile="")
+        return render_template('pdfMerger.html', msg="", file_path="")
 
 
 
 @app.route('/pdfMergerOrdered', methods=['GET', 'POST'])
 def pdfMergerOrdered():   
     if(request.method=='POST'):
-        pdf1 = request.form.get('filename1')
-        pdf2 = request.form.get('filename2')
-        pdf3 = request.form.get('filename3')
-        pdf4 = request.form.get('filename4')
-        
-        pdfs = [pdf1,pdf2,pdf3,pdf4]
-        pdfMerger = PyPDF2.PdfFileMerger() 
+        '''GETING THE FILE NAMES BY POST REQUEST'''
+        selected_files=[]
+        for i in range(4):
+            selected_files.append(request.files.get('filename%s' % (i+1)))
 
-        if pdfs==['', '', '', '']:
-            file_path=""
-            return render_template('pdfMergerOrdered.html', msg="Choose Some Files First", pdfFile=file_path)
-        else:
-            for pdf in pdfs: 
-                if pdf!='':
-                    pdfMerger.append('pdfFiles/'+pdf) 
-                    pdfMerger.write('mergedPDF/mergedPDFOutput.pdf')
-            
-            file_path = 'mergedPDF/mergedPDFOutput.pdf'
-            return render_template('pdfMergerOrdered.html', pdfFile=file_path, msg='')
+        '''UPLOADING THE FILE TO A SPECIFIC LOCATION'''
+        for i in range(4):
+            if selected_files[i].filename!='':
+                selected_files[i].save(os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(selected_files[i].filename)))
+        
+        '''MAKING ARRAY OF ALL FILES TO BE MERGED'''
+        pdfMerger = PyPDF2.PdfFileMerger() 
+        for i in range(4):
+            if selected_files[i].filename!='':
+                pdfMerger.append('uploadFolder/' + secure_filename(selected_files[i].filename)) 
+        
+        
+        name = secure_filename(selected_files[0].filename)[:-4]+"-MergedFile"+".pdf"
+        pdfMerger.write('mergedPDF/%s' % name)
+         
+        '''RETURNING THE PAGE WITH URL LINK OF MERGED FILE'''
+        file_path = 'mergedPDF/' + name
+        return render_template('pdfMergerOrdered.html', msg="Merged Successfully", pdfFile=file_path)
 
     else:
-        return render_template('pdfMergerOrdered.html', pdfFile='')
+        return render_template('pdfMergerOrdered.html', msg="", pdfFile="")
 
 
 
 @app.route('/pdfToText', methods=['GET', 'POST'])
 def pdfToText():   
     if(request.method=='POST'):
-        pdffile = request.form.get('filename')
-        # creating a pdfFile object 
-        pdfFileObj = open(f'pdfFiles/{pdffile}', 'rb') 
-        # creating a pdfReader object 
-        pdfReader = PyPDF2.PdfFileReader(pdfFileObj)
+        file_name = request.files.get('filename')
+        
+        '''UPLOADING FILE TO SERVER'''
+        file_name.save(os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(file_name.filename)))
 
-        # Printing Number of pages in pdf file
-        pages = pdfReader.numPages
+        '''CONVERTING PDF TO TEXT'''
+        pdfFileObj = open(f'uploadFolder/{secure_filename(file_name.filename)}', 'rb') 
+        pdfReader = PyPDF2.PdfFileReader(pdfFileObj)
+        
+        # Storing Number Of Pages in PDF
+        numberOfPages = pdfReader.numPages
 
         ConvertedTextData = ''
-        for i in range(pages):
-            # creating a page object 
+        for i in range(numberOfPages):
             pageObj = pdfReader.getPage(i)
-            # extracting text from page 
             content = pageObj.extractText()
-            ConvertedTextData = ConvertedTextData + content
-            ConvertedTextData = ConvertedTextData + '\n'
-
+            ConvertedTextData = ConvertedTextData + content + '\n\n'
         pdfFileObj.close()
+
         return render_template('pdfToText.html', convertedData=ConvertedTextData)
+
     else:
         return render_template('pdfToText.html')
         
@@ -88,14 +101,18 @@ def pdfToText():
 @app.route('/splitPdf', methods=['GET', 'POST'])
 def splitPdf():    
     if(request.method=='POST'):
-        pdffile = request.form.get('filename')
-        f = open(f'pdfFiles/{pdffile}', "rb")
-        inputpdf = PyPDF2.PdfFileReader(f)
+        file_name = request.files.get('filename')
+        strFileName = secure_filename(file_name.filename)
+        '''UPLOADING FILE TO SERVER'''
+        file_name.save(os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(file_name.filename)))
 
-        for i in range(inputpdf.numPages):
+        f = open('uploadFolder/%s' % strFileName, "rb")
+        pdfInput = PyPDF2.PdfFileReader(f)
+
+        for i in range(pdfInput.numPages):
             output = PyPDF2.PdfFileWriter()
-            output.addPage(inputpdf.getPage(i))
-            name = pdffile[:-4]+"-Page "+str(i)+".pdf"
+            output.addPage(pdfInput.getPage(i))
+            name = strFileName[:-4]+"-Page "+str(i)+".pdf"
             outputFiles = open('splitedFiles/'+name, "wb")
             output.write(outputFiles)
             
@@ -103,14 +120,5 @@ def splitPdf():
 
     else:
         return render_template('splitPdf.html', msg="")
-
-    # # Listing all the file in directory
-    # files = [f for f in os.listdir(".") if os.path.isfile(f)]
-
-    # #Selecting only PDF files from above list
-    # files = list(filter(lambda f: f.lower().endswith((".pdf")), files))
-    # # print(files)
-
-
 
 app.run(debug=True)
